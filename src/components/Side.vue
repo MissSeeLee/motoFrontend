@@ -6,9 +6,7 @@
         
         <div class="relative">
           <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 ring-1 ring-slate-700/50 shadow-lg group-hover:ring-blue-500/50 group-hover:bg-slate-750 transition-all duration-300">
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 group-hover:scale-110 transition-transform">
-               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-             </svg>
+             <span class="text-lg font-bold">{{ (userProfile.name || 'U').charAt(0).toUpperCase() }}</span>
           </div>
           <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-[#0f172a] rounded-full flex items-center justify-center">
              <div class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
@@ -21,7 +19,7 @@
           </h3>
           <div class="flex items-center gap-2 mt-1">
              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ONLINE</span>
-             <span class="text-[10px] text-slate-500">แก้ไขข้อมูล</span>
+             <span class="text-[10px] text-slate-500 group-hover:text-slate-300 transition-colors">แตะเพื่อแก้ไข</span>
           </div>
         </div>
       </div>
@@ -146,32 +144,53 @@
     </div>
 
     <div v-if="isProfileModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in-up">
-        <div class="bg-slate-900 p-4 flex justify-between items-center">
-          <h3 class="text-lg font-bold text-white flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-            แก้ไขข้อมูลส่วนตัว
-          </h3>
-          <button @click="closeProfileModal" class="text-slate-400 hover:text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
+      <div class="bg-[#1e293b] w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden border border-slate-700/50 animate-fade-in-up relative">
         
-        <div class="p-6 space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">ชื่อที่แสดง</label>
-            <input v-model="editForm.name" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="ชื่อของคุณ">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">เบอร์โทรศัพท์</label>
-            <input v-model="editForm.phone" type="tel" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="เบอร์โทรติดต่อ">
-          </div>
-          <div class="pt-2">
-            <button @click="updateProfile" :disabled="isLoading" class="w-full py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30">
-              <span v-if="isLoading" class="loading loading-spinner loading-sm"></span>
-              {{ isLoading ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
-            </button>
-          </div>
+        <div class="absolute top-0 left-0 right-0 h-24 bg-gradient-to-br from-blue-600/20 to-purple-600/10 pointer-events-none"></div>
+
+        <div class="p-6 relative z-10">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    </span>
+                    แก้ไขข้อมูลส่วนตัว
+                </h3>
+                <button @click="closeProfileModal" class="text-slate-400 hover:text-white transition-colors bg-slate-800/50 hover:bg-rose-500/20 p-1.5 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-400 uppercase ml-1">ชื่อที่แสดง</label>
+                    <div class="relative group">
+                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                         </div>
+                         <input v-model="editForm.name" type="text" class="w-full pl-10 pr-4 py-2.5 bg-[#0f172a] border border-slate-700 rounded-xl text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner" placeholder="ชื่อของคุณ">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-400 uppercase ml-1">เบอร์โทรศัพท์</label>
+                    <div class="relative group">
+                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                         </div>
+                         <input v-model="editForm.phone" type="tel" maxlength="10" class="w-full pl-10 pr-4 py-2.5 bg-[#0f172a] border border-slate-700 rounded-xl text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner" placeholder="08xxxxxxxx">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-4 border-t border-slate-700/50 flex gap-3">
+                <button @click="closeProfileModal" class="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors">ยกเลิก</button>
+                <button @click="updateProfile" :disabled="isLoading" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-blue-900/20 transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    <span v-if="isLoading" class="loading loading-spinner loading-xs"></span>
+                    {{ isLoading ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
+                </button>
+            </div>
         </div>
       </div>
     </div>
@@ -203,7 +222,7 @@ const editForm = reactive({
   phone: ''
 });
 
-// Helper เช็ค Active (เพราะบางที data ส่งมา key ต่างกัน)
+// Helper เช็ค Active
 const isActive = (device) => {
   const id = device.deviceId || device.id;
   return props.activeDeviceId === id;
@@ -211,7 +230,6 @@ const isActive = (device) => {
 
 // ดึงข้อมูลผู้ใช้ (จาก LocalStorage หรือ API)
 const fetchUserProfile = async () => {
-  // 1. ลองดึงจาก LocalStorage ก่อนเพื่อให้แสดงผลเร็ว
   const storedUser = localStorage.getItem('user');
   if (storedUser) {
     const parsed = JSON.parse(storedUser);
@@ -219,16 +237,12 @@ const fetchUserProfile = async () => {
     userProfile.phone = parsed.phone || parsed.phoneNumber || '';
   }
 
-  // 2. ถ้ามี Token ให้ยิง API ไปขอข้อมูลล่าสุดจาก Database
   try {
-    const res = await api.get('/auth/me'); // ปรับ Endpoint ตาม Backend ของคุณ
+    const res = await api.get('/auth/me'); 
     if (res.data) {
-       // อัพเดทข้อมูลใหม่
-       const userData = res.data.user || res.data; // ขึ้นอยู่กับโครงสร้าง response
+       const userData = res.data.user || res.data; 
        userProfile.name = userData.name;
        userProfile.phone = userData.phone;
-       
-       // อัพเดท LocalStorage ให้สดใหม่เสมอ
        localStorage.setItem('user', JSON.stringify(userData));
     }
   } catch (e) {
@@ -237,7 +251,6 @@ const fetchUserProfile = async () => {
 };
 
 const openProfileModal = () => {
-  // ก๊อปปี้ข้อมูลปัจจุบันมาใส่ฟอร์ม
   editForm.name = userProfile.name;
   editForm.phone = userProfile.phone;
   isProfileModalOpen.value = true;
@@ -252,17 +265,14 @@ const updateProfile = async () => {
   
   isLoading.value = true;
   try {
-    // ยิง API Update (ปรับ Endpoint ตาม Backend ของคุณ)
     const res = await api.put('/users/profile', {
       name: editForm.name,
       phone: editForm.phone
     });
 
-    // อัพเดทหน้าจอทันที
     userProfile.name = editForm.name;
     userProfile.phone = editForm.phone;
 
-    // อัพเดท LocalStorage
     const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
     const newUser = { ...storedUser, name: editForm.name, phone: editForm.phone };
     localStorage.setItem('user', JSON.stringify(newUser));

@@ -1,292 +1,209 @@
 <template>
-  <div class="w-full h-full relative z-0">
-    <div id="mainMap" class="w-full h-full outline-none bg-slate-200"></div>
-    
-    <div v-if="!isMapReady" class="absolute inset-0 flex items-center justify-center bg-slate-100/80 z-[1000] backdrop-blur-sm">
-       <span class="loading loading-spinner loading-lg text-primary"></span>
+  <Transition name="modal-fade">
+    <div v-if="isOpen" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      
+      <div class="bg-[#1e293b] w-full max-w-md rounded-3xl shadow-2xl shadow-blue-900/20 border border-slate-700/50 overflow-hidden relative transform transition-all">
+        
+        <div class="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-blue-600/20 via-purple-600/10 to-transparent pointer-events-none"></div>
+
+        <button @click="closeModal" class="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors z-10">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div class="p-8 relative z-0">
+          
+          <div class="flex flex-col items-center mb-8">
+            <div class="relative group">
+              <div class="w-24 h-24 rounded-full bg-slate-800 border-4 border-[#0f172a] shadow-xl flex items-center justify-center text-4xl font-bold text-white bg-gradient-to-br from-blue-500 to-indigo-600 ring-2 ring-blue-500/30 group-hover:ring-blue-400/60 transition-all duration-500">
+                {{ getInitials(form.name || form.username) }}
+              </div>
+              <div class="absolute bottom-1 right-1 w-6 h-6 bg-emerald-500 rounded-full border-4 border-[#1e293b]"></div>
+            </div>
+            <h2 class="mt-4 text-xl font-bold text-white tracking-wide">{{ form.username || 'User' }}</h2>
+            <p class="text-xs font-mono text-slate-400 bg-slate-800/50 px-2 py-0.5 rounded mt-1 border border-slate-700/50">
+              USER ID: {{ form.id || 'N/A' }}
+            </p>
+          </div>
+
+          <div class="space-y-5">
+            
+            <div class="group">
+              <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider ml-1">ชื่อที่แสดง (Display Name)</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <input 
+                  v-model="form.name" 
+                  type="text"  
+                  class="w-full pl-10 pr-4 py-3 bg-[#0f172a] text-slate-200 border border-slate-700/50 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder-slate-600"
+                  placeholder="กรอกชื่อของคุณ"
+                />
+              </div>
+            </div>
+
+            <div class="group">
+              <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider ml-1">อีเมล (Email)</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <input 
+                  v-model="form.email" 
+                  type="email"  
+                  class="w-full pl-10 pr-4 py-3 bg-[#0f172a] text-slate-200 border border-slate-700/50 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder-slate-600"
+                  placeholder="name@example.com"
+                />
+              </div>
+              <p class="text-[10px] text-amber-500/80 mt-1.5 ml-1 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                ใช้สำหรับรับการแจ้งเตือน
+              </p>
+            </div>
+
+            <div class="group">
+              <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider ml-1">เบอร์โทรศัพท์</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <input 
+                  v-model="form.phone" 
+                  @input="handlePhoneInput"
+                  type="tel" 
+                  maxlength="10"
+                  class="w-full pl-10 pr-4 py-3 bg-[#0f172a] text-slate-200 border border-slate-700/50 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder-slate-600"
+                  placeholder="08XXXXXXXX"
+                />
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="p-6 bg-[#0f172a]/50 border-t border-slate-700/50 flex justify-between items-center gap-3">
+            <button @click="closeModal" class="px-6 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700/50 font-medium transition-all text-sm">
+              ยกเลิก
+            </button>
+            <button @click="saveProfile" :disabled="isLoading" class="flex-1 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-900/30 transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2">
+              <span v-if="isLoading" class="loading loading-spinner loading-sm"></span>
+              {{ isLoading ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
+            </button>
+        </div>
+
+      </div>
     </div>
-  </div>
+  </Transition>
 </template>
 
 <script setup>
-import { onMounted, watch, ref, onUnmounted, nextTick } from 'vue';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { ref, reactive, watch } from "vue";
+import api from "../api";
 
-// รับ Props
 const props = defineProps({
-  data: { type: Array, default: () => [] }, // รับเป็น Array ของรถหลายคัน
-  geofence: { type: Object, default: () => ({ enabled: false, lat: 0, lng: 0, radius: 200 }) },
-  isEditing: { type: Boolean, default: false } // โหมดแก้ไข Geofence
+  isOpen: Boolean,
 });
 
-const emit = defineEmits(['update:center']);
-const map = ref(null);
-const markers = {}; // เก็บ Object Marker { deviceId: L.Marker }
-let geofenceCircle = null;
-const isMapReady = ref(false);
+const emit = defineEmits(["close", "saved", "toast"]); // เพิ่ม event toast
 
-// 🎨 Palette สีสำหรับแต้มสีรถแต่ละคันไม่ให้ซ้ำกัน
-const vehicleColors = [
-  '#ef4444', '#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
-];
+const isLoading = ref(false);
+const form = reactive({
+  id: "",
+  username: "",
+  name: "",
+  email: "",
+  phone: "",
+});
 
-// ฟังก์ชันสุ่มสีจาก ID (ID เดิมจะได้สีเดิมเสมอ)
-const getVehicleColor = (id) => {
-  let hash = 0;
-  for (let i = 0; i < (id || "").toString().length; i++) {
-    hash = (id || "").toString().charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % vehicleColors.length;
-  return vehicleColors[index];
+const getInitials = (name) => {
+  return name ? name.charAt(0).toUpperCase() : "?";
 };
 
-// สร้าง Icon HTML (CSS Marker)
-const createCustomIcon = (vehicleId, name) => {
-  const color = getVehicleColor(vehicleId);
-  const displayName = (name || 'Unknown').length > 10 ? (name || 'Unknown').substring(0, 10) + '..' : (name || 'Unknown');
-
-  return L.divIcon({
-    className: 'custom-marker-container', 
-    html: `
-      <div class="custom-marker-pin" style="--marker-color: ${color}">
-        <div class="marker-label">${displayName}</div>
-        <div class="marker-pulse"></div>
-        <div class="marker-dot"></div>
-      </div>
-    `,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-    popupAnchor: [0, -10]
-  });
-};
-
-onMounted(() => {
-    // ใช้ nextTick เพื่อให้มั่นใจว่า Div #mainMap ถูกสร้างแล้วจริงๆ
-    nextTick(() => {
-        initMap();
-    });
-});
-
-onUnmounted(() => { 
-    if (map.value) {
-        map.value.remove();
-        map.value = null;
-    }
-});
-
-const initMap = () => {
-  // เริ่มต้นแผนที่
-  map.value = L.map('mainMap', { zoomControl: false }).setView([13.7563, 100.5018], 15);
-  
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; CARTO', subdomains: 'abcd', maxZoom: 20
-  }).addTo(map.value);
-
-  // Event คลิกแผนที่ (สำหรับแก้ Geofence)
-  map.value.on('click', (e) => {
-      if (props.isEditing) {
-          emit('update:center', { lat: e.latlng.lat, lng: e.latlng.lng });
+// โหลดข้อมูลเมื่อเปิด Modal
+watch(() => props.isOpen, async (newVal) => {
+    if (newVal) {
+      // 1. ลองดึงจาก LocalStorage ก่อน (ให้แสดงผลไวๆ)
+      const stored = localStorage.getItem('user');
+      if(stored) {
+         const u = JSON.parse(stored);
+         form.username = u.username;
+         form.name = u.name;
+         form.phone = u.phone;
+         form.email = u.email;
+         form.id = u.id;
       }
-  });
 
-  isMapReady.value = true;
-
-  // วาดครั้งแรก
-  updateGeofenceDraw();
-  updateMarkersDraw();
-};
-
-// ---------------------------------------------
-// 🛠️ ส่วนจัดการ Marker (หัวใจหลัก)
-// ---------------------------------------------
-const updateMarkersDraw = () => {
-    if (!map.value) return; // ป้องกัน Error map is null
-
-    const vehicles = props.data || []; 
-    const currentIds = new Set();
-
-    vehicles.forEach(vehicle => {
-        // รองรับทั้ง deviceId และ id
-        const deviceId = vehicle.deviceId || vehicle.id;
-        
-        // ถ้าไม่มีพิกัด หรือไม่มี ID ให้ข้ามไป
-        if (!vehicle.lat || !vehicle.lng || !deviceId) return;
-
-        // จำไว้ว่า ID นี้ยังมีตัวตนอยู่
-        currentIds.add(deviceId);
-
-        const name = vehicle.name || deviceId;
-        const lat = parseFloat(vehicle.lat);
-        const lng = parseFloat(vehicle.lng);
-
-        if (!markers[deviceId]) {
-            // ✅ Case 1: ยังไม่มี Marker -> สร้างใหม่
-            markers[deviceId] = L.marker([lat, lng], { 
-                icon: createCustomIcon(deviceId, name) 
-            }).addTo(map.value);
-            
-            markers[deviceId].bindPopup(`
-                <div class="text-center">
-                    <b class="text-primary">${name}</b><br>
-                    <span class="text-xs text-gray-500">Speed: ${vehicle.speed || 0} km/h</span><br>
-                    <span class="text-xs text-gray-400">Batt: ${vehicle.battery || 0}%</span>
-                </div>
-            `);
-        } else {
-            // ✅ Case 2: มีแล้ว -> ขยับตำแหน่ง (Animation จะทำงานเองถ้าใช้ CSS transition หรือ Leaflet Move)
-            const oldLatLng = markers[deviceId].getLatLng();
-            
-            // อัปเดตตำแหน่ง
-            markers[deviceId].setLatLng([lat, lng]);
-            
-            // อัปเดต Popup (เฉพาะถ้ามีการเปลี่ยนข้อมูล)
-            if (!markers[deviceId].isPopupOpen()) {
-                 markers[deviceId].setPopupContent(`
-                    <div class="text-center">
-                        <b class="text-primary">${name}</b><br>
-                        <span class="text-xs text-gray-500">Speed: ${vehicle.speed || 0} km/h</span><br>
-                        <span class="text-xs text-gray-400">Batt: ${vehicle.battery || 0}%</span>
-                    </div>
-                `);
-            }
-        }
-    });
-
-    // ✅ Case 3: ลบ Marker ที่หายไปจากระบบ (เช่น รถถูกลบ หรือ Filter ออก)
-    Object.keys(markers).forEach(id => {
-        if (!currentIds.has(id)) {
-            map.value.removeLayer(markers[id]);
-            delete markers[id];
-        }
-    });
-};
-
-const updateGeofenceDraw = () => {
-  if (!map.value) return;
-  const gf = props.geofence;
-
-  if (!gf.enabled || gf.lat === 0) {
-    if (geofenceCircle) { 
-        map.value.removeLayer(geofenceCircle); 
-        geofenceCircle = null; 
+      // 2. ดึงจาก API ล่าสุด
+      try {
+        const res = await api.get("/auth/me");
+        const u = res.data.user || res.data;
+        form.id = u.id;
+        form.username = u.username;
+        form.name = u.name || "";
+        form.email = u.email || "";
+        form.phone = u.phone || "";
+      } catch (err) {
+        console.error("Failed to fetch profile", err);
+      }
     }
-    return;
-  }
-  
-  const color = props.isEditing ? '#f59e0b' : '#9333ea'; 
-  
-  if (geofenceCircle) {
-    geofenceCircle.setLatLng([gf.lat, gf.lng]); 
-    geofenceCircle.setRadius(gf.radius);
-    geofenceCircle.setStyle({ color: color, fillColor: color });
-  } else {
-    geofenceCircle = L.circle([gf.lat, gf.lng], {
-      color: color, fillColor: color, fillOpacity: 0.15, radius: gf.radius, weight: 2, dashArray: '5, 5'
-    }).addTo(map.value);
-  }
+});
+
+const handlePhoneInput = (e) => {
+  let value = e.target.value.replace(/\D/g, "");
+  if (value.length > 10) value = value.slice(0, 10);
+  form.phone = value;
+  e.target.value = value;
 };
 
-// Watchers: คอยดูการเปลี่ยนแปลงของ Props
-watch(() => props.data, updateMarkersDraw, { deep: true });
-watch(() => props.geofence, updateGeofenceDraw, { deep: true });
+const saveProfile = async () => {
+  isLoading.value = true;
+  try {
+    const res = await api.put("/users/profile", { // แก้ endpoint ให้ตรงกับ backend
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+    });
 
-// ---------------------------------------------
-// 🎮 Exposed Functions (ให้ Dashboard เรียกใช้)
-// ---------------------------------------------
+    const updatedUser = res.data.user || res.data;
+    localStorage.setItem("user", JSON.stringify(updatedUser));
 
-// ฟังก์ชันโฟกัสไปที่รถคันใดคันหนึ่ง
-const focusCar = (deviceId) => { 
-    if (!map.value) return;
+    // ส่ง event กลับไปบอก SideBar
+    emit("toast", { title: "สำเร็จ", msg: "บันทึกข้อมูลเรียบร้อย", type: "success" });
+    emit("saved", updatedUser);
+    emit("close");
     
-    const marker = markers[deviceId];
-    if (marker) {
-        // ใช้ flyTo เพื่อความสมูท
-        map.value.flyTo(marker.getLatLng(), 17, { duration: 1.5 });
-        // เปิด Popup โชว์ชื่อรถด้วย
-        marker.openPopup();
-    } else {
-        console.warn(`Marker for device ${deviceId} not found on map.`);
-    }
+  } catch (err) {
+    emit("toast", { title: "ผิดพลาด", msg: "บันทึกไม่สำเร็จ", type: "error" });
+    alert(err.response?.data?.message || "บันทึกไม่สำเร็จ");
+  } finally {
+    isLoading.value = false;
+  }
 };
 
-// ฟังก์ชันโฟกัสไปที่พิกัด (เช่น ตอนกด Geofence)
-const focusLatLn = (lat, lng) => { 
-    if(map.value) map.value.setView([lat, lng], 16, { animate: true }); 
-}; 
-
-defineExpose({ focusCar, focusLatLn });
+const closeModal = () => emit("close");
 </script>
 
-<style>
-/* CSS Styling */
-.custom-marker-container { pointer-events: none; } 
-.custom-marker-pin {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  width: 100%;
-  height: 100%;
-  pointer-events: auto;
-  transition: transform 0.3s ease; /* เพิ่มความสมูท */
+<style scoped>
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: all 0.3s ease;
 }
-
-.marker-dot {
-  width: 14px;
-  height: 14px;
-  background-color: var(--marker-color); 
-  border: 2px solid white;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-  z-index: 20;
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
 }
-
-.marker-pulse {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 20px;
-  height: 20px;
-  background-color: var(--marker-color);
-  opacity: 0.5;
-  border-radius: 50%;
-  z-index: 10;
-  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-}
-
-.marker-label {
-  position: absolute;
-  bottom: 22px; /* ขยับขึ้นนิดนึง */
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: rgba(255, 255, 255, 0.95);
-  color: #334155;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 800;
-  white-space: nowrap;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  border: 1px solid rgba(0,0,0,0.05);
-  z-index: 30;
-  pointer-events: none;
-}
-
-.marker-label::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-left: -3px;
-  border-width: 3px;
-  border-style: solid;
-  border-color: rgba(255, 255, 255, 0.95) transparent transparent transparent;
-}
-
-@keyframes pulse-ring {
-  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.8; }
-  100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+.modal-fade-enter-to,
+.modal-fade-leave-from {
+  opacity: 1;
+  transform: scale(1);
 }
 </style>
