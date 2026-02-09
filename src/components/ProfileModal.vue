@@ -166,7 +166,8 @@ const handlePhoneInput = (e) => {
 const saveProfile = async () => {
   isLoading.value = true;
   try {
-    const res = await api.put("/users/profile", { // แก้ endpoint ให้ตรงกับ backend
+    // 🔥 แก้ตรงนี้แล้ว: เปลี่ยนจาก /users/profile เป็น /auth/me
+    const res = await api.put("/auth/me", { 
       name: form.name,
       email: form.email,
       phone: form.phone,
