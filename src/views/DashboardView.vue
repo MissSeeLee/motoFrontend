@@ -324,6 +324,10 @@ const fetchInitialData = async () => {
         id: d.deviceId,
         name: d.name || `Device ${d.deviceId}`,
         emergencyPhone: d.emergencyPhone || "",
+        
+        // ✅ เพิ่มบรรทัดนี้ครับ: รองรับทั้งชื่อ alarmDuration, alarm_duration และ timer
+        alarmDuration: Number(d.alarmDuration ?? d.alarm_duration ?? d.timer ?? 0),
+
         lat: Number(lastLoc?.lat) || Number(d.lat) || 0,
         lng: Number(lastLoc?.lng) || Number(d.lng) || 0,
         speed: Number(lastLoc?.speed) || Number(d.speed) || 0,
@@ -392,8 +396,14 @@ const handleOpenShare = (d) => {
 
 const handleDeviceUpdated = (newData) => {
   if (vehicles[newData.id]) {
+    // อัปเดตชื่อ
     vehicles[newData.id].name = newData.name;
-    vehicles[newData.id].emergencyPhone = newData.emergencyPhone;
+    
+    // 🔴 เพิ่มบรรทัดนี้ครับ! (อัปเดตเวลาแจ้งเตือน)
+    vehicles[newData.id].alarmDuration = newData.alarmDuration; 
+    
+    // (ถ้ามีเบอร์ฉุกเฉินด้วยก็ใส่ไป)
+    // vehicles[newData.id].emergencyPhone = newData.emergencyPhone;
   }
   triggerToast("Saved", "บันทึกข้อมูลเรียบร้อย", "💾", "alert-success");
 };

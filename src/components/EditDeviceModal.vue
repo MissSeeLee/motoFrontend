@@ -49,7 +49,11 @@
         </div>
 
         <div class="pt-4">
-            <button @click="saveAll" :disabled="loading" class="btn btn-primary w-full rounded-xl shadow-lg shadow-blue-200 text-lg font-bold hover:scale-[1.02] transition-transform">
+            <button 
+                @click="saveAll" 
+                :disabled="loading" 
+                class="btn btn-primary w-full rounded-xl shadow-md font-bold text-white text-lg h-12 min-h-0 border-none bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:scale-[1.02] transition-all"
+            >
                <span v-if="loading" class="loading loading-spinner"></span>
                {{ loading ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
             </button>
@@ -91,24 +95,23 @@ const saveAll = async () => {
     loading.value = true;
     const id = deviceIdDisplay.value;
     
-    // Payload สำหรับ Database (อันนี้เดิมๆ ไม่ต้องแก้ ถ้ามันบันทึกได้แล้ว)
+    // Payload สำหรับ Database
     const dbPayload = { 
         name: form.name, 
-        alarmDuration: Number(form.timer) 
+        alarmDuration: Number(form.timer)
     };
 
     try {
         // 1. อัปเดต Database
         await api.put(`/devices/${id}`, dbPayload);
         
-        // 2. ส่งคำสั่งไปที่รถ (แก้ตรงนี้!)
+        // 2. ส่งคำสั่งไปที่รถ (Best Effort)
         try {
             await api.post(`/devices/${id}/command`, {
                  command: "set_timer",
-                 // ✅ แก้จาก value เป็น seconds ตามที่ Error บอก
-                 seconds: Number(form.timer) 
+                 seconds: Number(form.timer) // ใช้ seconds ตามที่ backend ต้องการ
             });
-            console.log("✅ Command sent to device (seconds)");
+            console.log("✅ Command sent to device");
         } catch (cmdErr) {
             console.warn("⚠️ Device might be offline:", cmdErr);
         }
