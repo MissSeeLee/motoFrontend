@@ -211,6 +211,9 @@ const currentDeviceId = ref("");
 const mapViewerRef = ref(null);
 const isMobileMenuOpen = ref(false);
 
+// Realtime Offline Check
+let checkInterval = null; // ตัวแปรเก็บ Interval
+
 // Geofence
 const draftGeofence = reactive({
   enabled: false,
@@ -266,20 +269,15 @@ const triggerToast = (arg1, arg2, arg3, arg4) => {
   toastData.icon = icon;
 
   if (colorCode.includes("success")) {
-    toastData.colorClass =
-      "bg-emerald-600/90 text-white border border-emerald-500/50 shadow-lg shadow-emerald-900/20";
+    toastData.colorClass = "bg-emerald-600/90 text-white border border-emerald-500/50 shadow-lg shadow-emerald-900/20";
   } else if (colorCode.includes("error")) {
-    toastData.colorClass =
-      "bg-rose-600/90 text-white border border-rose-500/50 shadow-lg shadow-rose-900/20";
+    toastData.colorClass = "bg-rose-600/90 text-white border border-rose-500/50 shadow-lg shadow-rose-900/20";
   } else if (colorCode.includes("warning")) {
-    toastData.colorClass =
-      "bg-amber-500/90 text-white border border-amber-400/50 shadow-lg shadow-amber-900/20";
+    toastData.colorClass = "bg-amber-500/90 text-white border border-amber-400/50 shadow-lg shadow-amber-900/20";
   } else if (colorCode.includes("info")) {
-    toastData.colorClass =
-      "bg-blue-600/90 text-white border border-blue-500/50 shadow-lg shadow-blue-900/20";
+    toastData.colorClass = "bg-blue-600/90 text-white border border-blue-500/50 shadow-lg shadow-blue-900/20";
   } else {
-    toastData.colorClass =
-      "bg-slate-700/90 text-white border border-slate-600 shadow-lg";
+    toastData.colorClass = "bg-slate-700/90 text-white border border-slate-600 shadow-lg";
   }
 
   showToast.value = true;
@@ -294,6 +292,29 @@ const displayGeofence = computed(() => {
   const v = vehicles[currentDeviceId.value];
   return v?.geofence || { enabled: false, lat: 0, lng: 0, radius: 200 };
 });
+
+// 🔥 ฟังก์ชันเช็ค Offline Realtime (ทุก 10 วินาที)
+const startOfflineCheck = () => {
+  if (checkInterval) clearInterval(checkInterval);
+
+  checkInterval = setInterval(() => {
+    const now = Date.now();
+    Object.keys(vehicles).forEach((deviceId) => {
+      const v = vehicles[deviceId];
+      if (!v.lastUpdate) return;
+
+      const lastTime = new Date(v.lastUpdate).getTime();
+      const diffMinutes = (now - lastTime) / 1000 / 60;
+
+      // ถ้าเกิน 5 นาที ปรับเป็น OFFLINE
+      if (v.status === 'ONLINE' && diffMinutes > 5) {
+        v.status = 'OFFLINE';
+        v.ign = false;
+        v.speed = 0;
+      }
+    });
+  }, 10000);
+};
 
 const fetchInitialData = async () => {
   try {
@@ -315,24 +336,40 @@ const fetchInitialData = async () => {
     }
     Object.keys(vehicles).forEach((key) => delete vehicles[key]);
 
+    const now = new Date();
+
     devicesList.forEach((d) => {
       const history = Array.isArray(d.locationHistory) ? d.locationHistory : [];
       const lastLoc = history.length > 0 ? history[0] : null;
       const batteryVal = d.currentBattery ?? d.battery ?? d.batt ?? 0;
+
+      // คำนวณเวลาล่าสุด
+      const lastUpdateStr = lastLoc?.createdAt || d.updatedAt || new Date();
+      const lastUpdateDate = new Date(lastUpdateStr);
+      const diffMinutes = (now - lastUpdateDate) / 1000 / 60;
+
+      // คำนวณสถานะจริง (DB อาจบอก ONLINE แต่ถ้าเก่านานแล้วต้อง OFFLINE)
+      let realStatus = d.currentStatus || "OFFLINE";
+      if (realStatus === 'ONLINE' && diffMinutes > 5) {
+          realStatus = 'OFFLINE';
+      }
 
       vehicles[d.deviceId] = {
         id: d.deviceId,
         name: d.name || `Device ${d.deviceId}`,
         emergencyPhone: d.emergencyPhone || "",
         
-        // ✅ เพิ่มบรรทัดนี้ครับ: รองรับทั้งชื่อ alarmDuration, alarm_duration และ timer
         alarmDuration: Number(d.alarmDuration ?? d.alarm_duration ?? d.timer ?? 0),
 
         lat: Number(lastLoc?.lat) || Number(d.lat) || 0,
         lng: Number(lastLoc?.lng) || Number(d.lng) || 0,
         speed: Number(lastLoc?.speed) || Number(d.speed) || 0,
-        ign: !!(lastLoc?.ign ?? d.ign),
-        status: d.currentStatus || "OFFLINE",
+        
+        // ใช้ logic ใหม่
+        status: realStatus,
+        ign: realStatus === 'ONLINE' ? !!(lastLoc?.ign ?? d.ign) : false,
+        lastUpdate: lastUpdateDate, // เก็บเวลาไว้ใช้กับ interval
+
         battery: Number(batteryVal),
         geofence: {
           enabled: !!d.isGeofenceActive,
@@ -352,12 +389,7 @@ const fetchInitialData = async () => {
   } catch (e) {
     console.error("Fetch Data Error:", e);
     if (e.message !== "Network Error")
-      triggerToast(
-        "Connection Error",
-        "ไม่สามารถโหลดข้อมูลอุปกรณ์ได้",
-        "⚠️",
-        "alert-error"
-      );
+      triggerToast("Connection Error", "ไม่สามารถโหลดข้อมูลอุปกรณ์ได้", "⚠️", "alert-error");
   }
 };
 
@@ -396,14 +428,8 @@ const handleOpenShare = (d) => {
 
 const handleDeviceUpdated = (newData) => {
   if (vehicles[newData.id]) {
-    // อัปเดตชื่อ
     vehicles[newData.id].name = newData.name;
-    
-    // 🔴 เพิ่มบรรทัดนี้ครับ! (อัปเดตเวลาแจ้งเตือน)
     vehicles[newData.id].alarmDuration = newData.alarmDuration; 
-    
-    // (ถ้ามีเบอร์ฉุกเฉินด้วยก็ใส่ไป)
-    // vehicles[newData.id].emergencyPhone = newData.emergencyPhone;
   }
   triggerToast("Saved", "บันทึกข้อมูลเรียบร้อย", "💾", "alert-success");
 };
@@ -433,7 +459,11 @@ const findMyBike = async (id) => {
   try {
     const targetId = id || currentDeviceId.value;
     if (!targetId) return;
-    await api.post(`/devices/${targetId}/command`, { command: "find_bike" });
+    // ✅ เพิ่ม value: 1 เพื่อแก้ Error 400 Bad Request
+    await api.post(`/devices/${targetId}/command`, { 
+        command: "find_bike",
+        value: 1 
+    });
     triggerToast("Sent", "ส่งสัญญาณตามหาแล้ว", "📢", "alert-info");
   } catch (e) {
     triggerToast("Error", "ส่งคำสั่งไม่สำเร็จ", "❌", "alert-error");
@@ -452,40 +482,31 @@ const openGeofencePanel = () => {
   showGeofencePanel.value = true;
   isMobileMenuOpen.value = false;
 
-  // Zoom ไปที่ Geofence ถ้ามี
   if (mapViewerRef.value && draftGeofence.lat !== 0) {
     mapViewerRef.value.focusLatLn(draftGeofence.lat, draftGeofence.lng, 15);
   }
 };
 
-// 1. ฟังก์ชันซูมไปที่รถเมื่อกดเปิดสวิตช์
 const handleZoomToCar = () => {
     if (currentDeviceId.value && mapViewerRef.value) {
         const v = vehicles[currentDeviceId.value];
         if (v) {
             draftGeofence.lat = v.lat;
             draftGeofence.lng = v.lng;
-            
-            // ✅ เช็คว่าเป็นมือถือหรือไม่
             const isMobile = window.innerWidth < 768;
-            
             if (isMobile) {
-                // ถ้าเป็นมือถือ: ให้ Offset 150px (ดันรถขึ้นไป 150px เพื่อหนี Panel)
-                // ปรับตัวเลข 150 ได้ตามความสูงของ Panel คุณ
                 mapViewerRef.value.focusCarWithOffset(currentDeviceId.value, 150);
             } else {
-                // ถ้าเป็นคอม: ซูมปกติ
                 mapViewerRef.value.focusCar(currentDeviceId.value);
             }
         }
     }
 };
 
-// 2. ฟังก์ชันปิด Geofence ทันทีเมื่อกดปิดสวิตช์
 const handleDisableGeofence = async () => {
   if (!isOwner.value) return;
   draftGeofence.enabled = false;
-  await saveGeofence(); // บันทึกทันที
+  await saveGeofence(); 
 };
 
 const saveGeofence = async () => {
@@ -499,28 +520,15 @@ const saveGeofence = async () => {
       emergencyPhone: currentV.emergencyPhone,
     });
 
-    // อัปเดตข้อมูลใน Local State
     if (vehicles[currentDeviceId.value]) {
       vehicles[currentDeviceId.value].geofence = { ...draftGeofence };
     }
 
-    // ถ้าเป็นการบันทึกแบบปิด ไม่ต้องแสดง Toast ใหญ่โตก็ได้ หรือแสดงให้รู้ว่าปิดแล้ว
     if (draftGeofence.enabled) {
-      triggerToast(
-        "Success",
-        "บันทึก Geofence ลงระบบแล้ว",
-        "✅",
-        "alert-success"
-      );
-      setTimeout(() => (showGeofencePanel.value = false), 500); // ปิดหน้าต่างเมื่อบันทึกเปิดสำเร็จ
+      triggerToast("Success", "บันทึก Geofence ลงระบบแล้ว", "✅", "alert-success");
+      setTimeout(() => (showGeofencePanel.value = false), 500);
     } else {
-      triggerToast(
-        "Info",
-        "ปิดระบบแจ้งเตือน Geofence แล้ว",
-        "🔕",
-        "alert-info"
-      );
-      // ไม่ต้องปิดหน้าต่าง ให้ User เห็นว่าปิดแล้ว
+      triggerToast("Info", "ปิดระบบแจ้งเตือน Geofence แล้ว", "🔕", "alert-info");
     }
   } catch (e) {
     triggerToast("Error", "บันทึกผิดพลาด", "❌", "alert-error");
@@ -555,8 +563,10 @@ const handleRemoteStopAlarm = async () => {
   muteAlert();
   if (!currentDeviceId.value) return;
   try {
+    // ✅ เพิ่ม value: 1 แก้ Error 400
     await api.post(`/devices/${currentDeviceId.value}/command`, {
       command: "stop_alarm",
+      value: 1
     });
     triggerToast("Info", "ส่งคำสั่งปิดเสียงรถแล้ว", "🔕", "alert-info");
   } catch (e) {
@@ -592,6 +602,9 @@ onMounted(async () => {
   }
 
   await fetchInitialData();
+  
+  // 🔥 เริ่มเช็คสถานะ Offline
+  startOfflineCheck();
 
   socket.on("connect", () => {
     connectionStatus.value = "Online";
@@ -599,11 +612,7 @@ onMounted(async () => {
 
   socket.on("new_location", (data) => {
     if (vehicles[data.deviceId]) {
-      const bat =
-        data.battery ??
-        data.batt ??
-        data.currentBattery ??
-        vehicles[data.deviceId].battery;
+      const bat = data.battery ?? data.batt ?? data.currentBattery ?? vehicles[data.deviceId].battery;
 
       vehicles[data.deviceId] = {
         ...vehicles[data.deviceId],
@@ -611,7 +620,11 @@ onMounted(async () => {
         lng: Number(data.lng),
         speed: Number(data.speed),
         ign: !!data.ign,
-        status: data.status || "ONLINE",
+        
+        // 🔥 ถ้ามีข้อมูลเข้า ต้องเป็น ONLINE เสมอ + อัปเดตเวลาล่าสุด
+        status: "ONLINE",
+        lastUpdate: new Date(), 
+        
         battery: Number(bat),
       };
     }
@@ -626,6 +639,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (socket) socket.disconnect();
+  if (checkInterval) clearInterval(checkInterval); // อย่าลืมเคลียร์ Interval
   muteAlert();
 });
 </script>
