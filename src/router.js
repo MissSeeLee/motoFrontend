@@ -7,8 +7,9 @@ import DashboardView from './views/DashboardView.vue';
 import HistoryView from './views/HistoryView.vue';
 import JoinView from './views/JoinView.vue';        // สำหรับรับรถจากเพื่อน
 import VerifyEmail from './views/VerifyEmail.vue';  // สำหรับยืนยันอีเมล
-import PublicTracking from './views/PublicTracking.vue'; // ✅ เพิ่มหน้านี้ (สำคัญมากสำหรับลิงก์ตำรวจ!)
-
+import PublicTracking from './views/PublicTracking.vue'; // ✅ เพิ่มหน้านี้ 
+import ChangePasswordView from './views/ChangePassword.vue'; // 👈 เพิ่มบรรทัดนี้
+import ForgotPasswordView from './views/ForgotPasswordView.vue';
 const routes = [
   // ==========================================
   // 🔓 Public Routes (ไม่ต้อง Login)
@@ -23,6 +24,12 @@ const routes = [
     path: '/register', 
     name: 'Register', 
     component: RegisterView,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/forgot-password', // ✅ เพิ่ม Route นี้
+    name: 'forgot-password',
+    component: ForgotPasswordView,
     meta: { requiresAuth: false }
   },
   {
@@ -61,6 +68,12 @@ const routes = [
     path: '/history/:deviceId',
     name: 'History',
     component: HistoryView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/change-password',
+    name: 'ChangePassword',
+    component: ChangePasswordView,
     meta: { requiresAuth: true }
   },
 

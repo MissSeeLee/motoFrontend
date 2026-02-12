@@ -6,12 +6,8 @@
         <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm">
           🏍️
         </div>
-        <h2 class="text-2xl font-bold text-slate-800">
-          ยินดีต้อนรับสู่ Moto-AntiThief
-        </h2>
-        <p class="text-slate-400 text-sm mt-1">
-          เข้าสู่ระบบเพื่อจัดการรถของคุณ
-        </p>
+        <h2 class="text-2xl font-bold text-slate-800">ยินดีต้อนรับสู่ Moto-AntiThief</h2>
+        <p class="text-slate-400 text-sm mt-1">เข้าสู่ระบบเพื่อจัดการรถของคุณ</p>
       </div>
 
       <form @submit.prevent="handleLogin" class="space-y-5">
@@ -29,7 +25,16 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">รหัสผ่าน</label>
+          <div class="flex justify-between items-center mb-1.5">
+            <label class="block text-sm font-medium text-slate-700">รหัสผ่าน</label>
+            <router-link 
+              to="/forgot-password" 
+              class="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+            >
+              ลืมรหัสผ่าน?
+            </router-link>
+          </div>
+          
           <input
             v-model="password"
             type="password"
@@ -49,19 +54,13 @@
         </button>
       </form>
 
-      <div
-        v-if="errorMessage"
-        class="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg text-center border border-red-100 flex items-center justify-center gap-2"
-      >
+      <div v-if="errorMessage" class="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg text-center border border-red-100 flex items-center justify-center gap-2">
         ⚠️ {{ errorMessage }}
       </div>
 
       <p class="text-center mt-8 text-sm text-slate-500">
         ยังไม่มีบัญชี?
-        <router-link
-          to="/register"
-          class="text-blue-600 font-semibold hover:underline"
-        >
+        <router-link to="/register" class="text-blue-600 font-semibold hover:underline">
           สมัครสมาชิกเลย
         </router-link>
       </p>

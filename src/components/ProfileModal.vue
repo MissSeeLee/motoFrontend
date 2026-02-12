@@ -57,12 +57,13 @@
 <script setup>
 import { ref, reactive, watch } from "vue";
 import api from "../api";
+import { useRouter } from "vue-router";
 
 const props = defineProps({ isOpen: Boolean });
 const emit = defineEmits(["close", "saved", "toast"]);
 const isLoading = ref(false);
 const form = reactive({ id: "", username: "", name: "", email: "", phone: "" });
-
+const router = useRouter()
 const getInitials = (name) => name ? name.charAt(0).toUpperCase() : "?";
 
 // โหลดข้อมูลเมื่อเปิด Modal
@@ -121,17 +122,9 @@ const saveProfile = async () => {
 };
 const handleChangePassword = () => {
   // Option 1: พาไปหน้าเปลี่ยนรหัสผ่าน
-  // router.push('/change-password');
-  
-  // Option 2: ส่ง Emit ไปบอก Parent ให้เปิด Modal เปลี่ยนรหัสแทน
-  emit("toast", { 
-    title: "ระบบเปลี่ยนรหัสผ่าน", 
-    message: "กำลังเปิดหน้าเปลี่ยนรหัสผ่าน...", 
-    icon: "🔑", 
-    color: "alert-info" 
-  });
-  // emit('openChangePasswordModal');
-};
+  router.push('/change-password');
+}
+
 
 const closeModal = () => emit("close");
 </script>
