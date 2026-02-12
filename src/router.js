@@ -10,6 +10,7 @@ import VerifyEmail from './views/VerifyEmail.vue';  // สำหรับยื�
 import PublicTracking from './views/PublicTracking.vue'; // ✅ เพิ่มหน้านี้ 
 import ChangePasswordView from './views/ChangePassword.vue'; // 👈 เพิ่มบรรทัดนี้
 import ForgotPasswordView from './views/ForgotPasswordView.vue';
+import ResetPasswordView from './views/ResetPasswordView.vue';
 const routes = [
   // ==========================================
   // 🔓 Public Routes (ไม่ต้อง Login)
@@ -31,6 +32,12 @@ const routes = [
     name: 'forgot-password',
     component: ForgotPasswordView,
     meta: { requiresAuth: false }
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: ResetPasswordView,
+    meta: { requiresAuth: false } // 🔓 สำคัญ: ต้องเป็น false เพราะคนลืมรหัสยังไม่ได้ Login
   },
   {
     path: '/verify-email',
