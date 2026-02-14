@@ -78,7 +78,7 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import api from "../api";
-import { socket } from "../services/socket.js"; // 🔌 ใช้ Socket กลางที่เชื่อมต่อถาวร
+import { socket } from "../services/socket"; // 🔌 ใช้ Socket กลางที่เชื่อมต่อถาวร
 
 // Components
 import SideBar from "../components/Side.vue";

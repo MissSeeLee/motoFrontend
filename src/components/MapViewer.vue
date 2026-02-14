@@ -192,6 +192,23 @@ const focusCar = (deviceId) => {
     }
 };
 
+const focusCarWithOffset = (deviceId) => {
+    const marker = markers[deviceId];
+    if(marker && map.value) {
+        const targetLatLng = marker.getLatLng();
+        
+        // ขยับศูนย์กลางลงมาด้านล่างนิดหน่อย (Offset) เพื่อไม่ให้หน้าต่าง UI บังตัวรถ
+        // 0.005 คือระยะ Offset ยิ่งมาก ยิ่งขยับเยอะ (ปรับค่าได้ตามความเหมาะสม)
+        const offsetLatLng = L.latLng(
+            targetLatLng.lat - 0.00, 
+            targetLatLng.lng
+        );
+        
+        map.value.flyTo(offsetLatLng, 16, { duration: 1.5 });
+        marker.openPopup();
+    }
+};
+
 const focusLatLn = (lat, lng, zoom = 16) => {
   if (!map.value) return;
   map.value.setView([lat, lng], zoom);
@@ -201,7 +218,7 @@ onMounted(() => { nextTick(() => { initMap(); }); });
 onUnmounted(() => { if (map.value) { map.value.remove(); map.value = null; } });
 watch(() => props.data, updateMarkersDraw, { deep: true });
 watch(() => props.geofence, updateGeofenceDraw, { deep: true });
-defineExpose({ focusCar, focusLatLn });
+defineExpose({ focusCar, focusLatLn,focusCarWithOffset });
 </script>
 
 <style>

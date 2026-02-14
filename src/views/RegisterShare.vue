@@ -88,10 +88,10 @@
           </div>
           <h2 class="text-2xl font-black text-slate-800 mb-2">ลงทะเบียนสำเร็จ!</h2>
           <p class="text-slate-500 text-sm leading-relaxed mb-8 px-4 font-medium">
-            ระบบได้ผูกเบอร์ <b>{{ form.phone }}</b> เข้ากับระบบรักษาความปลอดภัยแล้ว คุณจะได้รับการแจ้งเตือนทันทีเมื่อมีเหตุฉุกเฉิน
+            ระบบได้ผูกเบอร์ <b>{{ form.phone }}</b> เข้ากับระบบรักษาความปลอดภัยแล้ว กำลังพาไปหน้าติดตามรถ...
           </p>
-          <button @click="closeWindow" class="btn btn-block bg-blue-50 hover:bg-blue-100 text-blue-600 border-none rounded-2xl font-black h-14 shadow-sm">
-            รับทราบ ปิดหน้าต่างนี้
+          <button class="btn btn-block bg-emerald-50 text-emerald-600 border-none rounded-2xl font-black h-14 shadow-sm" disabled>
+            <span class="loading loading-spinner"></span> กำลังเปลี่ยนหน้า...
           </button>
         </div>
 
@@ -102,13 +102,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
-import api from '../api'; // Path ไปที่ axios instance ของคุณ
+import { useRoute, useRouter } from 'vue-router'; // ✅ นำเข้า useRouter
+import api from '../api';
 
 const route = useRoute();
-const token = route.params.token; // รับค่า Token จาก URL (/register-share/:token)
+const router = useRouter(); // ✅ สร้าง instance เพื่อใช้เปลี่ยนหน้า
+const token = route.params.token;
 
-// State: 'loading', 'error', 'ready', 'success'
 const status = ref('loading'); 
 const errorMessage = ref('');
 const isSubmitting = ref(false);
@@ -123,7 +123,6 @@ const form = ref({
   email: ''
 });
 
-// ตรวจสอบความถูกต้องของ Token ทันทีที่โหลดหน้า
 onMounted(async () => {
   if (!token) {
     status.value = 'error';
@@ -131,14 +130,25 @@ onMounted(async () => {
   }
 
   try {
-    // ยิง API ไปเช็คว่า Token นี้มีอยู่จริงไหม และถูกใช้ไปหรือยัง?
     const res = await api.get(`/sharing/verify/${token}`);
     
     if (res.data.success) {
-      alert("ลงทะเบียนสำเร็จ! กำลังพาไปหน้าติดตามรถ...");
       
-      // ✅ จุดที่ขาดไป! สั่งให้เด้งไปหน้า GuestTracking ทันที
-      router.push(`/track/${token}`); 
+      // ✅ ถ้าเคยลงทะเบียนแล้ว ให้พาไปหน้า Track เลย
+      if (res.data.share && res.data.share.registeredAt) {
+        alert("คุณเคยลงทะเบียนแล้ว ระบบจะพาไปหน้าติดตามรถ...");
+        router.push(`/track/${token}`); 
+        return;
+      }
+
+      // ✅ ถ้ายังไม่เคย ให้โหลดข้อมูลแล้ว "เปิดฟอร์ม" (ไม่เด้งไปไหน)
+      shareData.value = {
+        label: res.data.share?.label || 'ผู้รับการแชร์',
+        deviceId: res.data.share?.deviceId || '-'
+      };
+      
+      status.value = 'ready'; // 🔴 บรรทัดนี้ทำให้ฟอร์มแสดงขึ้นมาครับ
+
     } else {
       throw new Error('Invalid token');
     }
@@ -149,19 +159,24 @@ onMounted(async () => {
   }
 });
 
-// ส่งข้อมูลเพื่อลงทะเบียน
 const submitForm = async () => {
   if (!form.value.phone || !form.value.email) return;
   
   isSubmitting.value = true;
   try {
-    // ส่งข้อมูลไปอัปเดตที่ตาราง DeviceShare โดยอ้างอิงจาก Token
     await api.post(`/sharing/register/${token}`, {
       phone: form.value.phone,
       email: form.value.email
     });
     
-    status.value = 'success'; // เปลี่ยนหน้าเป็นแบบสำเร็จ
+    // ✅ ลงทะเบียนเสร็จ เปลี่ยนเป็นหน้าจอสีเขียว
+    status.value = 'success'; 
+    
+    // ✅ รอ 2.5 วินาทีให้ผู้ใช้อ่านข้อความ แล้วค่อยเปลี่ยนไปหน้าแผนที่
+    setTimeout(() => {
+      router.push(`/track/${token}`);
+    }, 2500);
+
   } catch (error) {
     console.error('Register error:', error);
     alert('เกิดข้อผิดพลาด: ' + (error.response?.data?.message || 'ไม่สามารถลงทะเบียนได้'));
@@ -170,39 +185,18 @@ const submitForm = async () => {
   }
 };
 
-// ปิดหน้าเว็บ (ทำงานได้ดีในกรณีเปิดจากแอป LINE / Messenger)
 const closeWindow = () => {
-  window.close();
-  // ถ้า Browser ป้องกันการ close() ให้เปลี่ยนหน้าไปเว็บอื่นแทน
-  setTimeout(() => {
-    window.location.href = 'https://google.com';
-  }, 300);
+  router.push('/');
 };
 </script>
 
 <style scoped>
-.animate-slide-up {
-  animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-@keyframes slide-up {
-  from { transform: translateY(50px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
+.animate-slide-up { animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes slide-up { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-.animate-pop {
-  animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-@keyframes pop {
-  0% { transform: scale(0.9); opacity: 0; }
-  60% { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
+.animate-pop { animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+@keyframes pop { 0% { transform: scale(0.9); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 
-.animate-fade-in {
-  animation: fade-in 0.4s ease-out forwards;
-}
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+.animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 </style>
