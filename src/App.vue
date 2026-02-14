@@ -5,12 +5,19 @@
       <router-view @toast="handleToast" />
     </div>
 
-    <GlobalAlertManager />
+    <SecurityAlert 
+      v-if="alertState.show"
+      :title="alertState.title"
+      :message="alertState.message"
+      :icon="alertState.icon"
+      :deviceId="alertState.deviceId"
+      @close="closeAlert"
+      @mute-vehicle="handleRemoteMute"
+    />
 
     <Transition name="toast-slide">
       <div v-if="toast.show" 
-           class="fixed top-5 right-5 z-[9999] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border backdrop-blur-md transition-all duration-300 min-w-[320px] max-w-sm cursor-pointer
-                  mt-[env(safe-area-inset-top)] mr-[env(safe-area-inset-right)]" 
+           class="fixed top-5 right-5 z-[9999] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border backdrop-blur-md transition-all duration-300 min-w-[320px] max-w-sm cursor-pointer" 
            :class="toastStyle"
            @click="toast.show = false">
         
@@ -31,12 +38,25 @@
 </template>
 
 <script setup>
-import { reactive, computed } from 'vue';
+import { reactive, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { socket } from '@/services/socket'; // 🔌 ใช้ท่อ Socket กลาง
+import SecurityAlert from '@/components/SecurityAlert.vue'; // 🚨 Import ตัวแจ้งเตือนมา
+import api from '@/api';
 
-// ✨ 3. Import ไฟล์ Component ที่เราเพิ่งสร้างเข้ามา (เช็ค Path ให้ตรงกับโฟลเดอร์ของคุณนะครับ)
-import GlobalAlertManager from './components/GlobalAlertManager.vue';
+const router = useRouter();
+const audio = new Audio("/alert.mp3");
 
-// --- Toast State เดิมของคุณ ---
+// --- 🚨 Security Alert State (ตัวใหม่ที่เพิ่มมา) ---
+const alertState = reactive({
+  show: false,
+  title: '',
+  message: '',
+  icon: '🚨',
+  deviceId: ''
+});
+
+// --- 🔔 Toast State เดิมของคุณ ---
 const toast = reactive({
   show: false,
   title: '',
@@ -46,18 +66,63 @@ const toast = reactive({
   timer: null
 });
 
-// --- Logic ของ Toast เดิม ---
+// --- 🚀 เริ่มต้นดักฟัง Socket ทันทีที่เปิดเว็บ ---
+onMounted(() => {
+  console.log("🌐 [App.vue] Global Listener Is Ready!");
+
+  socket.on("new_alert", (data) => {
+    console.log("📢 [App.vue] RECEIVED ALERT:", data);
+    
+    const msg = (data.message || "").toUpperCase();
+    
+    // เงื่อนไขเด้งหน้าแดง (Critical) - เช็ค THEFT_DETECTED จาก Log ของคุณ
+    if (msg.includes("THEFT") || msg.includes("DETECTED") || msg.includes("GEOFENCE") || msg.includes("ACCIDENT")) {
+      alertState.deviceId = data.deviceId;
+      alertState.title = msg.includes("THEFT") ? "🚨 ตรวจพบการโจรกรรม!" : "⚠️ แจ้งเตือนเหตุร้าย!";
+      alertState.message = data.message;
+      alertState.icon = "🚨";
+      alertState.show = true;
+      
+      // เล่นเสียงไซเรน
+      audio.play().catch(() => console.log("Audio blocked by browser, need user interaction first."));
+      
+      // ขึ้น Toast ควบคู่ไปด้วย
+      setupToast({ title: 'Critical Alert!', message: data.message, type: 'error' });
+    } else {
+      // แจ้งเตือนทั่วไป (โชว์แค่ Toast)
+      setupToast({ title: 'System Info', message: data.message, type: 'warning' });
+    }
+  });
+});
+
+// --- 🛠️ Functions สำหรับ SecurityAlert ---
+const closeAlert = () => {
+  alertState.show = false;
+  audio.pause();
+  audio.currentTime = 0;
+};
+
+const handleRemoteMute = async () => {
+  try {
+    await api.post(`/devices/${alertState.deviceId}/command`, { command: "stop_alarm", value: 1 });
+    setupToast({ title: 'Success', message: 'ส่งคำสั่งปิดเสียงรถแล้ว', type: 'success' });
+    closeAlert();
+  } catch (e) {
+    setupToast({ title: 'Error', message: 'ไม่สามารถปิดเสียงรถได้', type: 'error' });
+  }
+};
+
+// --- 🛠️ Logic ของ Toast เดิมที่คุณเขียนไว้ ---
 const setupToast = (data) => {
   toast.title = data.title || 'แจ้งเตือน';
   toast.message = data.message || '';
   toast.icon = data.icon || '🔔';
 
   const colorClass = data.color || '';
-  
-  if (colorClass.includes('error') || colorClass.includes('rose') || colorClass.includes('red') || data.type === 'error') {
+  if (colorClass.includes('error') || colorClass.includes('red') || data.type === 'error') {
     toast.type = 'error';
     if (!data.icon) toast.icon = '❌';
-  } else if (colorClass.includes('warning') || colorClass.includes('amber') || data.type === 'warning') {
+  } else if (colorClass.includes('warning') || data.type === 'warning') {
     toast.type = 'warning';
     if (!data.icon) toast.icon = '⚠️';
   } else {
@@ -66,11 +131,8 @@ const setupToast = (data) => {
   }
 
   toast.show = true;
-
   if (toast.timer) clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => {
-    toast.show = false;
-  }, 3000);
+  toast.timer = setTimeout(() => { toast.show = false; }, 3000);
 };
 
 const handleToast = (payload) => {
@@ -84,28 +146,16 @@ const handleToast = (payload) => {
 
 const toastStyle = computed(() => {
   switch (toast.type) {
-    case 'success': 
-      return 'bg-emerald-600/90 border-emerald-500/50 shadow-emerald-900/50';
-    case 'error':   
-      return 'bg-rose-600/90 border-rose-500/50 shadow-rose-900/50';
-    case 'warning': 
-      return 'bg-amber-500/90 border-amber-400/50 shadow-amber-900/50';
-    default:        
-      return 'bg-slate-700/90 border-slate-600 shadow-slate-900/50';
+    case 'success': return 'bg-emerald-600/90 border-emerald-500/50 shadow-emerald-900/50';
+    case 'error': return 'bg-rose-600/90 border-rose-500/50 shadow-rose-900/50';
+    case 'warning': return 'bg-amber-500/90 border-amber-400/50 shadow-amber-900/50';
+    default: return 'bg-slate-700/90 border-slate-600 shadow-slate-900/50';
   }
 });
 </script>
 
 <style>
-/* Animation ของ Toast เดิม */
-.toast-slide-enter-active,
-.toast-slide-leave-active {
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.toast-slide-enter-from,
-.toast-slide-leave-to {
-  opacity: 0;
-  transform: translateX(20px) scale(0.95);
-}
+/* Animation */
+.toast-slide-enter-active, .toast-slide-leave-active { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+.toast-slide-enter-from, .toast-slide-leave-to { opacity: 0; transform: translateX(20px) scale(0.95); }
 </style>
