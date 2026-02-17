@@ -1,11 +1,11 @@
 <template>
   <Transition name="slide-up">
     <div v-if="vehicle && vehicle.id" 
-         class="absolute z-20 transition-all duration-300
-                /* 📱 Mobile: กลางบน */
-                top-16 left-1/2 -translate-x-1/2 w-[90vw] 
+         class="absolute z-50 transition-all duration-300
+                /* 📱 Mobile: กลางบน (ขยับลงมานิดหน่อย ไม่ให้ทับปุ่ม Hamburger) */
+                top-20 left-1/2 -translate-x-1/2 w-[90vw] 
                 /* 🖥️ Desktop: ขวาบน */
-                md:top-4 md:right-4 md:left-auto md:translate-x-0 md:w-72 
+                md:top-6 md:right-6 md:left-auto md:translate-x-0 md:w-72 
                 animate-fade-in-up">
       
       <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/50 overflow-hidden transition-all duration-200"

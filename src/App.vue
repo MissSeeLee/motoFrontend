@@ -6,20 +6,23 @@
     </div>
 
     <SecurityAlert 
-      v-if="alertState.show"
+      v-show="alertState.show"
       :title="alertState.title"
       :message="alertState.message"
       :icon="alertState.icon"
       :deviceId="alertState.deviceId"
       @close="closeAlert"
       @mute-vehicle="handleRemoteMute"
+      class="z-[9999]"
     />
 
-    <Transition name="toast-slide">
-      <div v-if="toast.show" 
-           class="fixed top-5 right-5 z-[9999] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border backdrop-blur-md transition-all duration-300 min-w-[320px] max-w-sm cursor-pointer" 
-           :class="toastStyle"
-           @click="toast.show = false">
+    <div class="fixed top-5 right-5 z-[9999] pointer-events-none flex flex-col gap-2">
+      <div 
+        v-show="toast.show" 
+        class="flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border backdrop-blur-md min-w-[320px] max-w-sm cursor-pointer pointer-events-auto" 
+        :class="toastStyle"
+        @click="toast.show = false"
+      >
         
         <div class="text-2xl flex-shrink-0">{{ toast.icon }}</div>
         
@@ -32,7 +35,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       </div>
-    </Transition>
+    </div>
 
   </div>
 </template>
@@ -40,14 +43,13 @@
 <script setup>
 import { reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { socket } from '@/services/socket'; // 🔌 ใช้ท่อ Socket กลาง
-import SecurityAlert from '@/components/SecurityAlert.vue'; // 🚨 Import ตัวแจ้งเตือนมา
+import { socket } from '@/services/socket'; 
+import SecurityAlert from '@/components/SecurityAlert.vue'; 
 import api from '@/api';
 
 const router = useRouter();
 const audio = new Audio("/alert.mp3");
 
-// --- 🚨 Security Alert State (ตัวใหม่ที่เพิ่มมา) ---
 const alertState = reactive({
   show: false,
   title: '',
@@ -56,7 +58,6 @@ const alertState = reactive({
   deviceId: ''
 });
 
-// --- 🔔 Toast State เดิมของคุณ ---
 const toast = reactive({
   show: false,
   title: '',
@@ -66,36 +67,78 @@ const toast = reactive({
   timer: null
 });
 
-// --- 🚀 เริ่มต้นดักฟัง Socket ทันทีที่เปิดเว็บ ---
 onMounted(() => {
   console.log("🌐 [App.vue] Global Listener Is Ready!");
 
   socket.on("new_alert", (data) => {
+    if (!data || !data.deviceId) return;
+    
     console.log("📢 [App.vue] RECEIVED ALERT:", data);
+    const rawMsg = data.message || "";
+    const msg = rawMsg.toUpperCase();
     
-    const msg = (data.message || "").toUpperCase();
-    
-    // เงื่อนไขเด้งหน้าแดง (Critical) - เช็ค THEFT_DETECTED จาก Log ของคุณ
-    if (msg.includes("THEFT") || msg.includes("DETECTED") || msg.includes("GEOFENCE") || msg.includes("ACCIDENT")) {
+    // 🛡️ ตัวแปรสำหรับจัดรูปแบบข้อความให้สวยงาม (ถ้าเป็น JSON)
+    let isVibration = false;
+    let isFallen = false;
+    let displayMsg = rawMsg; 
+    let displayTitle = "";
+
+    // 🛡️ แกะกล่อง JSON เพื่อเอาข้อมูลมาแสดงให้ User อ่านง่าย
+    try {
+      if (rawMsg.startsWith('{')) {
+        const parsed = JSON.parse(rawMsg);
+        if (parsed.event === 'BUMP_DETECTED') {
+          isVibration = true;
+          displayMsg = `แรงสั่นสะเทือนระดับ: ${parsed.vib || 'ไม่ระบุ'}`;
+        }
+        else if (parsed.event === 'FALLEN_DETECTED') {
+          isFallen = true;
+          displayTitle = "🚨 แจ้งเตือน: รถล้ม!";
+          displayMsg = `รถเอียงผิดปกติ! (องศา: ${parsed.deg || 0}, สั่น: ${parsed.vib || 0})`;
+        }
+      }
+    } catch (e) { /* ไม่ใช่ JSON ปล่อยผ่านเป็น String ธรรมดา */ }
+
+    // --- 🚨 [MAIN ALERT] หน้าแดง + ไซเรน ---
+    if (isFallen || msg.includes("THEFT") || msg.includes("GEOFENCE") || msg.includes("FALLEN")) {
+      
       alertState.deviceId = data.deviceId;
-      alertState.title = msg.includes("THEFT") ? "🚨 ตรวจพบการโจรกรรม!" : "⚠️ แจ้งเตือนเหตุร้าย!";
-      alertState.message = data.message;
-      alertState.icon = "🚨";
-      alertState.show = true;
       
-      // เล่นเสียงไซเรน
-      audio.play().catch(() => console.log("Audio blocked by browser, need user interaction first."));
+      // ✅ กำหนดหัวข้อและข้อความให้ตรงกับเหตุการณ์
+      if (isFallen || msg.includes("FALLEN")) {
+          alertState.title = displayTitle || "🚨 แจ้งเตือน: รถล้ม!";
+          alertState.message = displayMsg; // โชว์ข้อความที่แกะจาก JSON แล้ว
+      } else if (msg.includes("THEFT")) {
+          alertState.title = "🚨 ตรวจพบการโจรกรรม!";
+          alertState.message = rawMsg;
+      } else {
+          alertState.title = "⚠️ แจ้งเตือนเหตุร้าย!";
+          alertState.message = rawMsg;
+      }
       
-      // ขึ้น Toast ควบคู่ไปด้วย
-      setupToast({ title: 'Critical Alert!', message: data.message, type: 'error' });
-    } else {
-      // แจ้งเตือนทั่วไป (โชว์แค่ Toast)
-      setupToast({ title: 'System Info', message: data.message, type: 'warning' });
+      setTimeout(() => {
+        alertState.show = true;
+        audio.play().catch(() => console.warn("Audio blocked: User interaction required"));
+      }, 100);
+
+      setupToast({ title: 'Critical Alert!', message: alertState.message, type: 'error' });
+    } 
+
+    // --- 🔔 [TOAST ALERT] แจ้งเตือนสถานะทั่วไป ---
+    else {
+      if (msg.includes("BATTERY")) {
+        setupToast({ title: 'Battery Warning', message: 'แบตเตอรี่อุปกรณ์ใกล้หมด!', type: 'warning', icon: '🪫' });
+      } 
+      else if (isVibration || msg.includes("BUMP") || msg.includes("DETECTED")) {
+        setupToast({ title: 'ตรวจพบการสั่นสะเทือน', message: displayMsg, type: 'warning', icon: '⚠️' });
+      }
+      else {
+        setupToast({ title: 'System Notification', message: rawMsg, type: 'info' });
+      }
     }
   });
 });
 
-// --- 🛠️ Functions สำหรับ SecurityAlert ---
 const closeAlert = () => {
   alertState.show = false;
   audio.pause();
@@ -112,7 +155,6 @@ const handleRemoteMute = async () => {
   }
 };
 
-// --- 🛠️ Logic ของ Toast เดิมที่คุณเขียนไว้ ---
 const setupToast = (data) => {
   toast.title = data.title || 'แจ้งเตือน';
   toast.message = data.message || '';
@@ -153,9 +195,3 @@ const toastStyle = computed(() => {
   }
 });
 </script>
-
-<style>
-/* Animation */
-.toast-slide-enter-active, .toast-slide-leave-active { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-.toast-slide-enter-from, .toast-slide-leave-to { opacity: 0; transform: translateX(20px) scale(0.95); }
-</style>
